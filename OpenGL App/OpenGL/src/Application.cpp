@@ -18,14 +18,18 @@
 #include "Shader.h"
 #include "Renderer.h"
 #include"Texture.h"
+#include"tests/TestClearColor.h"
+#include"tests/Test.h"
 
 void processInput(GLFWwindow* window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 
+
+
 int main(void)
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF); //flag for checking memory leak
-	
+
 	GLFWwindow* window;
 
 	/* Initialize the library */
@@ -37,9 +41,9 @@ int main(void)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	
+
 	/* Create a windowed mode window and its OpenGL context */
-	window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+	window = glfwCreateWindow(1280, 720, "Hello World", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -57,76 +61,51 @@ int main(void)
 	std::cout << glGetString(GL_VERSION) << std::endl;
 	/* Loop until the user closes the window */
 
-	float Vertice_Array[]{ -0.5f, -0.5f, 0.0f, 0.0f,
-							0.5f, -0.5f, 1.0f, 0.0f,
-							0.5f,  0.5f, 1.0f, 1.0f,
-						   -0.5f,  0.5f, 0.0f, 1.0f };
-	unsigned int indice[]{ 0, 1, 2, 2, 3, 0 };
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	VertexArray va;
-	VertexBuffer vb(Vertice_Array, 4*4*sizeof(float));
-	VertexBufferLayout layout;
-	layout.Push<float>(2);
-	layout.Push<float>(2);
-	va.AddBuffer(vb, layout);
-	//va.UnBind();
-
-	IndexBuffer ib(indice, 6);
-	//ib.Bind();
-	//va.UnBind();
-	
-	glm::mat4 proj = glm::ortho(-2.f, 2.f, -1.5f, 1.5f, -1.f, 1.f);
-	glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.f, 0.f));
-	Shader shader("res/shaders/Basic.shader");
-	shader.Bind();
-	Texture texture("res/textures/gold-dollar.png");
-	texture.Bind();
-	shader.SetUniform1i("Tex", 0);
-	shader.SetUniformMat4f("proj", proj);
-	shader.SetUniformMat4f("view", view);
-	//shader.SetUniformMat4f("model", model);
 
 	Renderer renderer;
 
 	ImGui::CreateContext();
 	ImGui_ImplGlfwGL3_Init(window, true);
 	ImGui::StyleColorsDark();
-	glm::vec3 translationA(-0.5f, 0.f, 0.f);
-	glm::vec3 translationB(0.5f, 0.f, 0.f);
+
+	test::Test* CurrentTest = nullptr;
+	test::TestMenu* testMenu = new test::TestMenu(CurrentTest);
+	CurrentTest = testMenu;
+	testMenu->RegisterTest<test::TestClearColor>("Clear Color");
+
+	//test::TestClearColor test;
 
 	while (!glfwWindowShouldClose(window))
 	{
 		processInput(window);
 		/* Render here */
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		renderer.Clear();
-		ImGui_ImplGlfwGL3_NewFrame();
-		texture.Bind();
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), translationA);
-		glm::mat4 model_ = glm::translate(glm::mat4(1.0f), translationB);
-		//glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
-		shader.SetUniformMat4f("model", model);
-		//glClear(GL_COLOR_BUFFER_BIT);
-		//shader.SetUniform1f("b", b);
-		renderer.Draw(va, ib, shader);
-		//va.UnBind();
-		shader.SetUniformMat4f("model", model_);
-		renderer.Draw(va, ib, shader);
-		//va.Bind();
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-		//increment *= ((b > 1 || b < 0) ? -1 : 1);
-		//b += increment;
-		{
+		//test.OnUpdate(0.0f);
+		//test.OnRender();
 
-			ImGui::SliderFloat3("TranslationA", &translationA[0], -1.0f, 1.0f);
-			ImGui::SliderFloat3("TranslationB", &translationB[0], -1.0f, 1.0f);
-			// Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			
+		ImGui_ImplGlfwGL3_NewFrame();
+		if (CurrentTest) {
+			CurrentTest->OnUpdate(0.0f);
+			CurrentTest->OnRender();
+			ImGui::Begin("Test");
+			if (CurrentTest != testMenu && ImGui::Button("<-"))
+			{
+				delete CurrentTest;
+				CurrentTest = testMenu;
+			}
+
+			CurrentTest->OnImGuiRender();
+			ImGui::End();
+
 		}
+		//test.OnImGuiRender();
 
 		ImGui::Render();
+
 		ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
@@ -134,6 +113,9 @@ int main(void)
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
+	delete CurrentTest;
+	if (CurrentTest != testMenu)
+		delete testMenu;
 	ImGui_ImplGlfwGL3_Shutdown();
 	ImGui::DestroyContext();
 	glfwTerminate();
@@ -154,3 +136,4 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	// height will be significantly larger than specified on retina displays.
 	glViewport(0, 0, width, height);
 }
+
