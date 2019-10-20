@@ -19,6 +19,7 @@
 #include "Renderer.h"
 #include"Texture.h"
 #include"tests/TestClearColor.h"
+#include"tests/TestTexture2D.h"
 #include"tests/Test.h"
 
 void processInput(GLFWwindow* window);
@@ -75,6 +76,7 @@ int main(void)
 	test::TestMenu* testMenu = new test::TestMenu(CurrentTest);
 	CurrentTest = testMenu;
 	testMenu->RegisterTest<test::TestClearColor>("Clear Color");
+	testMenu->RegisterTest<test::TestTexture2D>("2D Texture");
 
 	//test::TestClearColor test;
 
